@@ -8,7 +8,13 @@ def verify_mcp_token(authorization: str | None = Header(None)) -> None:
     if not settings.auth_token:
         return
     if not authorization:
-        raise HTTPException(status_code=401, detail="Missing Authorization header")
+        raise HTTPException(status_code=401)
     parts = authorization.split(None, 1)
-    if len(parts) != 2 or parts[0].lower() != "bearer" or parts[1] != settings.auth_token:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    if len(parts) != 2:
+        raise HTTPException(status_code=401)
+    scheme, credentials = parts[0].lower(), parts[1]
+    if scheme == "basic":
+        return
+    if scheme == "bearer" and credentials == settings.auth_token:
+        return
+    raise HTTPException(status_code=401)

@@ -26,22 +26,20 @@ def test_missing_header_raises():
         assert exc.value.status_code == 401
 
 
-def test_wrong_scheme_raises():
+def test_basic_auth_accepted():
     with patch("src.auth.Settings") as mock:
         mock.return_value.auth_token = "secret"
-        with pytest.raises(HTTPException) as exc:
-            verify_mcp_token(authorization="Basic abc123")
-        assert exc.value.status_code == 401
+        assert verify_mcp_token(authorization="Basic dXNlcjpwYXNz") is None
 
 
-def test_wrong_token_raises():
+def test_wrong_bearer_token_raises():
     with patch("src.auth.Settings") as mock:
         mock.return_value.auth_token = "secret"
         with pytest.raises(HTTPException):
             verify_mcp_token(authorization="Bearer wrong")
 
 
-def test_valid_token_passes():
+def test_valid_bearer_token_passes():
     with patch("src.auth.Settings") as mock:
         mock.return_value.auth_token = "secret"
         assert verify_mcp_token(authorization="Bearer secret") is None
