@@ -1,0 +1,12 @@
+apiVersion: v2
+name: mempalace-server
+description: MemPalace MCP server — AI memory via ChromaDB + knowledge graph
+type: application
+version: 0.1.0
+appVersion: "3.4.1"
+keywords:
+  - mempalace
+  - mcp
+  - ai
+  - memory
+home: https://github.com/MemPalace/mempalace

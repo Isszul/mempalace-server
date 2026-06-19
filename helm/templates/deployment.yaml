@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-mempalace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mempalace
+  strategy:
+    type: Recreate   # Longhorn RWO PVC — only one pod at a time
+  template:
+    metadata:
+      labels:
+        app: mempalace
+    spec:
+      containers:
+        - name: mempalace
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.targetPort }}
+          env:
+            - name: MEMPALACE_PALACE_PATH
+              value: {{ .Values.env.palacePath | quote }}
+            - name: PORT
+              value: {{ .Values.service.targetPort | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.targetPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: palace-data
+              mountPath: {{ .Values.env.palacePath }}
+      volumes:
+        - name: palace-data
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-mempalace-pvc

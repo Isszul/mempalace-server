@@ -1,0 +1,37 @@
+image:
+  repository: mempalace-server
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+env:
+  palacePath: /palace
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClass: ""   # empty = use cluster default StorageClass
+  accessMode: ReadWriteOnce
+
+ingress:
+  enabled: true
+  className: ""      # set to your ingress class, e.g. "nginx"
+  annotations: {}
+  hosts:
+    - host: mempalace.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
