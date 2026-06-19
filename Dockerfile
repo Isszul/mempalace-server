@@ -20,6 +20,9 @@ COPY src src/
 ENV MEMPALACE_PALACE_PATH=/palace
 ENV PORT=8080
 
+RUN useradd --system --uid 1000 --no-create-home mempalace
+USER mempalace
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \

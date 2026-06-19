@@ -12,8 +12,7 @@ router = APIRouter()
 
 @router.get("/health")
 async def health() -> dict:
-    s = Settings()
-    return {"status": "ok", "palace_path": s.palace_path}
+    return {"status": "ok"}
 
 
 @router.get("/")

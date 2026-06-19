@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import verify_auth
 from .deps import get_kg_store, get_palace_store
@@ -12,6 +13,16 @@ from .routes.ui import router as ui_router
 from .storage import KGStore, PalaceStore
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+
+def _make_cors() -> CORSMiddleware:
+    return CORSMiddleware(
+        app=None,
+        allow_origins=[],
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
 
 def create_app(
@@ -29,6 +40,14 @@ def create_app(
         app.dependency_overrides[get_palace_store] = lambda: palace_store
     if kg_store is not None:
         app.dependency_overrides[get_kg_store] = lambda: kg_store
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[],
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
 
     app.include_router(ui_router)
     app.include_router(kg_router)

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
 from ..deps import get_palace_store
@@ -6,6 +6,12 @@ from ..events import signal_update
 from ..storage import PalaceStore
 
 router = APIRouter()
+
+
+def _sanitize_name(name: str | None) -> str | None:
+    if name is not None and set("$\\{}[]") & set(name):
+        raise HTTPException(status_code=400, detail=f"Invalid characters in name: {name}")
+    return name
 
 
 @router.get("/api/drawers")
@@ -16,6 +22,7 @@ async def get_drawers(
     offset: int = 0,
     palace: PalaceStore = Depends(get_palace_store),
 ) -> dict:
+    _sanitize_name(wing); _sanitize_name(room)
     drawers = palace.get_drawers(wing, room, limit, offset)
     return {"drawers": drawers, "total": len(drawers)}
 

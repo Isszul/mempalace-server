@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
 from ..deps import get_kg_store, get_palace_store
@@ -6,6 +6,15 @@ from ..events import signal_update
 from ..storage import KGStore, PalaceStore
 
 router = APIRouter()
+
+
+_INVALID_CHARS = set("$\\{}[]")
+
+
+def _sanitize_name(name: str) -> str:
+    if any(c in _INVALID_CHARS for c in name):
+        raise HTTPException(status_code=400, detail=f"Invalid characters in name: {name}")
+    return name
 
 
 @router.get("/api/palace")
@@ -31,6 +40,7 @@ async def merge_wings(
     palace: PalaceStore = Depends(get_palace_store),
     kg: KGStore = Depends(get_kg_store),
 ) -> dict | JSONResponse:
+    _sanitize_name(source); _sanitize_name(target)
     if source == target:
         return JSONResponse({"error": "Cannot merge wing into itself"}, status_code=400)
     moved = palace.merge_wings(source, target)
@@ -46,6 +56,7 @@ async def dedupe_wing(
     wing: str,
     palace: PalaceStore = Depends(get_palace_store),
 ) -> dict:
+    _sanitize_name(wing)
     result = palace.dedupe_wing(wing)
     signal_update()
     return {"wing": wing, **result}
@@ -56,6 +67,7 @@ async def delete_wing(
     wing: str,
     palace: PalaceStore = Depends(get_palace_store),
 ) -> dict:
+    _sanitize_name(wing)
     deleted = palace.delete_wing(wing)
     signal_update()
     return {"deleted": deleted}
@@ -67,6 +79,7 @@ async def delete_room(
     room: str,
     palace: PalaceStore = Depends(get_palace_store),
 ) -> dict:
+    _sanitize_name(wing); _sanitize_name(room)
     deleted = palace.delete_room(wing, room)
     signal_update()
     return {"deleted": deleted}
