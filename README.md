@@ -4,7 +4,7 @@ HTTP server and web UI for [MemPalace](https://github.com/MemPalace/mempalace) �
 
 ## What this is
 
-- **`POST /mcp`** — Streamable HTTP MCP endpoint (connect via supergateway or any MCP client)
+- **`POST /mcp`** — Streamable HTTP MCP endpoint (connect via any MCP client)
 - **`GET /`** — interactive web UI: vis-network KG graph, palace tree browser, semantic search
 - **`GET /health`** — Kubernetes liveness/readiness probe
 
@@ -57,10 +57,4 @@ helm install mempalace ./helm \
 
 ## Connecting an MCP client
 
-With [supergateway](https://github.com/supermaven-inc/supergateway):
-
-```bash
-supergateway --streamableHttp http://localhost:8080/mcp
-```
-
-Or configure directly in your MCP client pointing to `http://<host>:8080/mcp`.
+Configure your MCP client to point at `http://<host>:8080/mcp`.

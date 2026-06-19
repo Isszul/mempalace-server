@@ -1,8 +1,7 @@
 """
-MemPalace K3s MCP Server
-========================
+MemPalace MCP Server
+====================
 Exposes all mempalace MCP tools over Streamable HTTP (POST /mcp).
-Compatible with supergateway --streamableHttp http://mempalace.home/mcp
 
 Env vars:
   MEMPALACE_PALACE_PATH   - where ChromaDB lives  (default: /palace)
