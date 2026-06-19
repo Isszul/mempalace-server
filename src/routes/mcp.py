@@ -1,11 +1,10 @@
 import logging
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 from mempalace.mcp_server import handle_request
 
-from ..auth import verify_mcp_token
 from ..events import signal_update
 
 logger = logging.getLogger("mempalace-server")
@@ -17,7 +16,6 @@ _MUTATION_KEYWORDS = ("add", "delete", "invalidate", "write")
 @router.post("/mcp")
 async def mcp_endpoint(
     request: Request,
-    _: None = Depends(verify_mcp_token),
 ) -> JSONResponse:
     try:
         body = await request.json()

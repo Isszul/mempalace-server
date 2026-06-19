@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python warmup.py
 
 COPY server.py .
+COPY src src/
 
 ENV MEMPALACE_PALACE_PATH=/palace
 ENV PORT=8080

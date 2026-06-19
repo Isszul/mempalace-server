@@ -53,8 +53,50 @@ helm install mempalace ./helm \
 |---------|---------|-------------|
 | `MEMPALACE_PALACE_PATH` | `/palace` | Path to ChromaDB storage directory |
 | `MEMPALACE_KG_PATH` | `$PALACE_PATH/knowledge_graph.sqlite3` | Path to SQLite knowledge graph |
+| `MEMPALACE_AUTH_TOKEN` | _(none)_ | Bearer token for API/MCP auth |
+| `MEMPALACE_AUTH_USERNAME` | `admin` | Basic auth username |
+| `MEMPALACE_AUTH_PASSWORD` | _(none)_ | Basic auth password |
 | `PORT` | `8080` | HTTP port |
+
+### Authentication
+
+When `MEMPALACE_AUTH_TOKEN` or `MEMPALACE_AUTH_PASSWORD` is set, all routes except
+`GET /health` require authentication. Two mechanisms are supported:
+
+- **Bearer token**: send `Authorization: Bearer <token>`
+- **Basic auth**: send `Authorization: Basic <base64>` using `MEMPALACE_AUTH_USERNAME` / `MEMPALACE_AUTH_PASSWORD`. Falls back to using `MEMPALACE_AUTH_TOKEN` as the password if no password is configured.
+
+Both work on every route (`/mcp`, `/api/*`, web UI).
 
 ## Connecting an MCP client
 
 Configure your MCP client to point at `http://<host>:8080/mcp`.
+
+### Example: OpenCode
+
+```json
+{
+  "mcp": {
+    "mempalace": {
+      "type": "remote",
+      "url": "http://mempalace.home/mcp",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      }
+    }
+  }
+}
+```
+
+### Example: curl
+
+```bash
+# Bearer token
+curl -H "Authorization: Bearer <token>" http://localhost:8080/mcp
+
+# Basic auth
+curl -u admin:<password> http://localhost:8080/api/graph
+
+# Health check (no auth required)
+curl http://localhost:8080/health
+```

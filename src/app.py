@@ -1,7 +1,8 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
+from .auth import verify_auth
 from .deps import get_kg_store, get_palace_store
 from .routes.drawers import router as drawers_router
 from .routes.kg import router as kg_router
@@ -18,7 +19,11 @@ def create_app(
     kg_store: KGStore | None = None,
 ) -> FastAPI:
     """FastAPI factory. Pass stores to override deps in tests."""
-    app = FastAPI(title="MemPalace MCP", version="3.4.1")
+    app = FastAPI(
+        title="MemPalace MCP",
+        version="3.4.1",
+        dependencies=[Depends(verify_auth)],
+    )
 
     if palace_store is not None:
         app.dependency_overrides[get_palace_store] = lambda: palace_store

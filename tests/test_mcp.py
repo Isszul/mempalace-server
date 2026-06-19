@@ -83,6 +83,7 @@ def test_mcp_auth_no_token_config_allows(client):
     with patch("src.auth.Settings") as mock_settings, \
          patch("src.routes.mcp.handle_request", return_value=mock_response):
         mock_settings.return_value.auth_token = None
+        mock_settings.return_value.auth_password = None
         resp = client.post(
             "/mcp",
             json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
