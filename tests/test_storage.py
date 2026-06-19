@@ -1,7 +1,7 @@
 import sqlite3
 
 import pytest
-from src.storage import KGStore
+from src.storage import KGStore, PalaceStore
 
 KG_SCHEMA = """
 CREATE TABLE IF NOT EXISTS entities (
@@ -110,3 +110,127 @@ def test_update_triple_wing(kg):
         "SELECT source_closet FROM triples WHERE id='t1'"
     ).fetchone()
     assert row[0] == "wing2/room1"
+
+
+# ── PalaceStore tests ──────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def palace(tmp_path):
+    return PalaceStore(path=str(tmp_path))
+
+
+def _seed_palace(palace: PalaceStore, drawers: list[dict] | None = None) -> list[str]:
+    if drawers is None:
+        drawers = [
+            {"id": "d1", "content": "Alice likes cats",   "wing": "wing1", "room": "room1"},
+            {"id": "d2", "content": "Bob likes dogs",     "wing": "wing1", "room": "room2"},
+            {"id": "d3", "content": "Charlie likes fish", "wing": "wing2", "room": "room1"},
+        ]
+    col = palace._col
+    for d in drawers:
+        col.add(
+            ids=[d["id"]],
+            documents=[d["content"]],
+            metadatas=[{"wing": d["wing"], "room": d["room"], "source_file": ""}],
+        )
+    return [d["id"] for d in drawers]
+
+
+def test_palace_get_tree_empty(palace):
+    tree = palace.get_tree()
+    assert tree["wings"] == []
+    assert tree["total_drawers"] == 0
+
+
+def test_palace_get_tree_populated(palace):
+    _seed_palace(palace)
+    tree = palace.get_tree()
+    assert tree["total_drawers"] == 3
+    wing_names = [w["name"] for w in tree["wings"]]
+    assert "wing1" in wing_names
+    assert "wing2" in wing_names
+
+
+def test_palace_get_drawers_all(palace):
+    _seed_palace(palace)
+    drawers = palace.get_drawers(None, None, 50, 0)
+    assert len(drawers) == 3
+
+
+def test_palace_get_drawers_wing_filter(palace):
+    _seed_palace(palace)
+    drawers = palace.get_drawers("wing1", None, 50, 0)
+    assert len(drawers) == 2
+    assert all(d["wing"] == "wing1" for d in drawers)
+
+
+def test_palace_get_drawers_room_filter(palace):
+    _seed_palace(palace)
+    drawers = palace.get_drawers("wing1", "room1", 50, 0)
+    assert len(drawers) == 1
+    assert drawers[0]["id"] == "d1"
+
+
+def test_palace_get_drawer_by_id(palace):
+    _seed_palace(palace)
+    d = palace.get_drawer_by_id("d1")
+    assert d is not None
+    assert d["content"] == "Alice likes cats"
+    assert d["wing"] == "wing1"
+
+
+def test_palace_get_drawer_by_id_missing(palace):
+    assert palace.get_drawer_by_id("nonexistent") is None
+
+
+def test_palace_search_returns_results(palace):
+    _seed_palace(palace)
+    results = palace.search("Alice cats", limit=5)
+    assert len(results) > 0
+    assert results[0]["wing"] == "wing1"
+
+
+def test_palace_search_empty_collection(palace):
+    results = palace.search("anything", limit=5)
+    assert results == []
+
+
+def test_palace_merge_wings(palace):
+    _seed_palace(palace)
+    moved = palace.merge_wings("wing1", "merged")
+    assert moved == 2
+    drawers = palace.get_drawers("merged", None, 50, 0)
+    assert len(drawers) == 2
+
+
+def test_palace_dedupe_wing(palace):
+    col = palace._col
+    col.add(ids=["x1"], documents=["same content"], metadatas=[{"wing": "w", "room": "r", "source_file": ""}])
+    col.add(ids=["x2"], documents=["same content"], metadatas=[{"wing": "w", "room": "r", "source_file": ""}])
+    col.add(ids=["x3"], documents=["unique"],       metadatas=[{"wing": "w", "room": "r", "source_file": ""}])
+    result = palace.dedupe_wing("w")
+    assert result["removed"] == 1
+    assert result["kept"] == 2
+
+
+def test_palace_delete_wing(palace):
+    _seed_palace(palace)
+    count = palace.delete_wing("wing1")
+    assert count == 2
+    assert palace.get_drawers("wing1", None, 50, 0) == []
+
+
+def test_palace_delete_room(palace):
+    _seed_palace(palace)
+    count = palace.delete_room("wing1", "room1")
+    assert count == 1
+    remaining = palace.get_drawers("wing1", None, 50, 0)
+    assert len(remaining) == 1
+    assert remaining[0]["id"] == "d2"
+
+
+def test_palace_delete_drawer(palace):
+    _seed_palace(palace)
+    palace.delete_drawer("d1")
+    assert palace.get_drawer_by_id("d1") is None
