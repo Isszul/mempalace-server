@@ -119,6 +119,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 </style>
 </head>
 <body>
+<div id="login-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);justify-content:center;align-items:center">
+  <div style="background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:32px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+    <h2 style="color:#64ffda;margin-bottom:8px;font-size:18px">MemPalace Auth</h2>
+    <p style="color:#888;font-size:12px;margin-bottom:20px">Enter credentials to access the knowledge graph</p>
+    <input id="login-user" type="text" placeholder="Username" style="width:100%;background:#16162a;border:1px solid #333;border-radius:6px;padding:10px 12px;color:#ccc;font-size:14px;margin-bottom:10px;outline:none" autocomplete="username">
+    <input id="login-pass" type="password" placeholder="Password" style="width:100%;background:#16162a;border:1px solid #333;border-radius:6px;padding:10px 12px;color:#ccc;font-size:14px;margin-bottom:20px;outline:none" autocomplete="current-password">
+    <div id="login-error" style="color:#ff6b6b;font-size:12px;margin-bottom:10px;display:none"></div>
+    <button id="login-btn" style="width:100%;background:#64ffda;color:#0a0a1a;border:none;border-radius:6px;padding:10px;font-size:14px;font-weight:600;cursor:pointer">Login</button>
+  </div>
+</div>
 <div id="sidebar-toggle" onclick="toggleSidebar()">&#9776;</div>
 <div id="sidebar">
   <div id="tree-header">
@@ -647,6 +657,45 @@ function showEdgeDetail(edgeId){
       document.getElementById('info-content').innerHTML='<p style="color:#f44336;">'+err.message+'</p>';
     });
 }
+
+// ── Auth ─────────────────────────────────────────────────
+var _authHeader=sessionStorage.getItem('mempalace_auth');
+var _origFetch=window.fetch.bind(window);
+window.fetch=function(u,o){
+  o=o||{};
+  if(_authHeader){
+    o.headers=o.headers||{};
+    if(!o.headers.Authorization) o.headers.Authorization=_authHeader;
+  }
+  return _origFetch(u,o).then(function(r){
+    if(r.status===401){
+      _authHeader=null;
+      sessionStorage.removeItem('mempalace_auth');
+      showLogin();
+      return Promise.reject(new Error('Unauthorized'));
+    }
+    return r;
+  });
+};
+function showLogin(){
+  var ov=document.getElementById('login-overlay');
+  ov.style.display='flex';
+  document.getElementById('login-user').focus();
+}
+function doLogin(){
+  var u=document.getElementById('login-user').value.trim();
+  var p=document.getElementById('login-pass').value;
+  var err=document.getElementById('login-error');
+  if(!u||!p){err.textContent='Both fields required';err.style.display='block';return}
+  err.style.display='none';
+  _authHeader='Basic '+btoa(u+':'+p);
+  sessionStorage.setItem('mempalace_auth',_authHeader);
+  document.getElementById('login-overlay').style.display='none';
+  refreshGraph();loadPalaceTree();
+}
+document.getElementById('login-btn').addEventListener('click',doLogin);
+document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin()});
+if(!_authHeader) showLogin();
 
 // ── Live updates via SSE ────────────────────────────────
 var evtSource=new EventSource('/events');

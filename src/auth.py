@@ -21,7 +21,7 @@ def verify_auth(request: Request) -> None:
     if not settings.auth_token and not settings.auth_password:
         return
     path = request.url.path.rstrip("/").lower()
-    if path == "/health":
+    if path == "/health" or path == "/events" or (request.method == "GET" and path == ""):
         return
 
     auth = request.headers.get("authorization")

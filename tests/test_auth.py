@@ -10,16 +10,17 @@ from src.config import Settings
 
 
 class _Request:
-    def __init__(self, path, headers=None):
+    def __init__(self, path, headers=None, method="POST"):
         self.url = type("URL", (), {"path": path})()
         self.headers = headers or {}
+        self.method = method
 
 
-def _req(path, auth_header=None):
+def _req(path, auth_header=None, method="POST"):
     headers = {}
     if auth_header:
         headers["authorization"] = auth_header
-    return _Request(path, headers)
+    return _Request(path, headers, method)
 
 
 def test_no_auth_configured_passes():
@@ -90,6 +91,28 @@ def test_basic_auth_uses_token_as_password_fallback():
         assert verify_auth(_req("/mcp", f"Basic {encoded}")) is None
 
 
+def test_root_get_bypasses_auth():
+    with patch("src.auth.Settings") as mock:
+        mock.return_value.auth_token = "secret"
+        mock.return_value.auth_password = None
+        assert verify_auth(_req("", method="GET")) is None
+
+
+def test_root_post_requires_auth():
+    with patch("src.auth.Settings") as mock:
+        mock.return_value.auth_token = "secret"
+        mock.return_value.auth_password = None
+        with pytest.raises(HTTPException):
+            verify_auth(_req("", method="POST"))
+
+
+def test_events_bypasses_auth():
+    with patch("src.auth.Settings") as mock:
+        mock.return_value.auth_token = "secret"
+        mock.return_value.auth_password = None
+        assert verify_auth(_req("/events", "Bearer wrong")) is None
+
+
 def test_all_routes_protected_end_to_end():
     settings = Settings()
     assert settings.auth_token is None  # no env var in test
@@ -107,6 +130,12 @@ def test_all_routes_protected_end_to_end():
 
         resp = client2.get("/api/graph", headers={"Authorization": "Bearer secret"})
         assert resp.status_code == 200
+
+        resp = client2.get("/")
+        assert resp.status_code == 200  # web UI bypasses auth
+
+        resp = client2.get("/health")
+        assert resp.status_code == 200  # health bypasses auth
 
 
 def create_test_app():

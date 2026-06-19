@@ -8,7 +8,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt warmup.py ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && apt-get purge -y --auto-remove gcc g++
 
 # Pre-warm the sentence-transformer embedding model used by ChromaDB
 # (~80MB model baked into image — avoids cold-start network call in cluster)
